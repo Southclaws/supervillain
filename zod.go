@@ -178,6 +178,9 @@ func (c *converter) convertType(t reflect.Type, name string, indent int) string 
 		// Handle nested un-named structs - these are inline.
 		if t.Name() == "" {
 			return c.convertStruct(t, indent)
+		} else if t.Name() == "Time" {
+			// timestamps are serialised to strings.
+			return "z.string()"
 		} else {
 			c.addSchema(name, c.convertStructTopLevel(t))
 			return schemaName(c.prefix, name)

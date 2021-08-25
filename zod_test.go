@@ -2,6 +2,7 @@ package supervillain
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -169,4 +170,20 @@ export const UserSchema = z.object({
 export type User = z.infer<typeof UserSchema>
 
 `, StructToZodSchema(User{}))
+}
+
+func TestStructTime(t *testing.T) {
+	type User struct {
+		Name string
+		When time.Time
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  name: z.string(),
+  when: z.string(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
 }
