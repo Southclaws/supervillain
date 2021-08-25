@@ -25,8 +25,12 @@ func TestFieldName(t *testing.T) {
 
 func TestSchemaName(t *testing.T) {
 	assert.Equal(t,
-		schemaName("User"),
+		schemaName("", "User"),
 		"UserSchema",
+	)
+	assert.Equal(t,
+		schemaName("Bot", "User"),
+		"BotUserSchema",
 	)
 }
 
@@ -46,6 +50,24 @@ export type User = z.infer<typeof UserSchema>
 
 `,
 		StructToZodSchema(User{}))
+}
+
+func TestStructSimplePrefix(t *testing.T) {
+	type User struct {
+		Name   string
+		Age    int
+		Height float64
+	}
+	assert.Equal(t,
+		`export const BotUserSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  height: z.number(),
+})
+export type BotUser = z.infer<typeof BotUserSchema>
+
+`,
+		StructToZodSchemaWithPrefix("Bot", User{}))
 }
 
 func TestStringArray(t *testing.T) {

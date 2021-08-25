@@ -11,6 +11,32 @@ import (
 
 func StructToZodSchema(input interface{}) string {
 	c := converter{
+		prefix:  "",
+		outputs: make(map[string]entry),
+	}
+
+	t := reflect.TypeOf(input)
+
+	c.addSchema(t.Name(), c.convertStructTopLevel(t))
+
+	output := strings.Builder{}
+	sorted := []entry{}
+	for _, ent := range c.outputs {
+		sorted = append(sorted, ent)
+	}
+
+	sort.Sort(ByOrder(sorted))
+
+	for _, ent := range sorted {
+		output.WriteString(ent.data)
+		output.WriteString("\n\n")
+	}
+	return output.String()
+}
+
+func StructToZodSchemaWithPrefix(prefix string, input interface{}) string {
+	c := converter{
+		prefix:  prefix,
 		outputs: make(map[string]entry),
 	}
 
@@ -65,6 +91,7 @@ func (a ByOrder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByOrder) Less(i, j int) bool { return a[i].order < a[j].order }
 
 type converter struct {
+	prefix  string
 	structs int
 	outputs map[string]entry
 }
@@ -75,8 +102,8 @@ func (c *converter) addSchema(name string, data string) {
 	c.structs = order + 1
 }
 
-func schemaName(name string) string {
-	return fmt.Sprintf("%sSchema", name)
+func schemaName(prefix, name string) string {
+	return fmt.Sprintf("%s%sSchema", prefix, name)
 }
 
 func fieldName(input string) string {
@@ -104,10 +131,10 @@ func (c *converter) convertStructTopLevel(t reflect.Type) string {
 	output.WriteString(fmt.Sprintf(
 		`export const %s = %s
 `,
-		schemaName(name), c.convertStruct(t, 0)))
+		schemaName(c.prefix, name), c.convertStruct(t, 0)))
 
-	output.WriteString(fmt.Sprintf(`export type %s = z.infer<typeof %sSchema>`,
-		name, name))
+	output.WriteString(fmt.Sprintf(`export type %s%s = z.infer<typeof %s%sSchema>`,
+		c.prefix, name, c.prefix, name))
 
 	return output.String()
 }
@@ -153,7 +180,7 @@ func (c *converter) convertType(t reflect.Type, name string, indent int) string 
 			return c.convertStruct(t, indent)
 		} else {
 			c.addSchema(name, c.convertStructTopLevel(t))
-			return schemaName(name)
+			return schemaName(c.prefix, name)
 		}
 	}
 
