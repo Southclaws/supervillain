@@ -1,6 +1,7 @@
 package supervillain
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -9,18 +10,29 @@ import (
 
 func TestFieldName(t *testing.T) {
 	assert.Equal(t,
-		fieldName("RCONPassword"),
+		fieldName(reflect.StructField{Name: "RCONPassword"}),
 		"rconPassword",
 	)
 
 	assert.Equal(t,
-		fieldName("LANMode"),
+		fieldName(reflect.StructField{Name: "LANMode"}),
 		"lanMode",
 	)
 
 	assert.Equal(t,
-		fieldName("ABC"),
+		fieldName(reflect.StructField{Name: "ABC"}),
 		"abc",
+	)
+}
+
+func TestFieldNameJsonTag(t *testing.T) {
+	type S struct {
+		NotTheFieldName string `json:"fieldName"`
+	}
+
+	assert.Equal(t,
+		fieldName(reflect.TypeOf(S{}).Field((0))),
+		"fieldName",
 	)
 }
 

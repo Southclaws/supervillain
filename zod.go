@@ -106,8 +106,11 @@ func schemaName(prefix, name string) string {
 	return fmt.Sprintf("%s%sSchema", prefix, name)
 }
 
-func fieldName(input string) string {
-	return strcase.ToLowerCamel(strcase.ToSnake(input))
+func fieldName(input reflect.StructField) string {
+	if json := input.Tag.Get("json"); json != "" {
+		return json
+	}
+	return strcase.ToLowerCamel(strcase.ToSnake(input.Name))
 }
 
 func typeName(t reflect.Type) string {
@@ -200,7 +203,7 @@ func (c *converter) convertType(t reflect.Type, name string, indent int) string 
 }
 
 func (c *converter) convertField(f reflect.StructField, indent int, optional bool) string {
-	name := fieldName(f.Name)
+	name := fieldName(f)
 
 	optionalCall := ""
 	if optional {
