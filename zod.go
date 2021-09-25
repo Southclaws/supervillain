@@ -108,7 +108,8 @@ func schemaName(prefix, name string) string {
 
 func fieldName(input reflect.StructField) string {
 	if json := input.Tag.Get("json"); json != "" {
-		return json
+		args := strings.Split(json, ",")
+		return args[0]
 	}
 	return strcase.ToLowerCamel(strcase.ToSnake(input.Name))
 }

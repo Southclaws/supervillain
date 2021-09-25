@@ -36,6 +36,18 @@ func TestFieldNameJsonTag(t *testing.T) {
 	)
 }
 
+
+func TestFieldNameJsonTagOmitEmpty(t *testing.T) {
+	type S struct {
+		NotTheFieldName string `json:"fieldName,omitempty"`
+	}
+
+	assert.Equal(t,
+		fieldName(reflect.TypeOf(S{}).Field((0))),
+		"fieldName",
+	)
+}
+
 func TestSchemaName(t *testing.T) {
 	assert.Equal(t,
 		schemaName("", "User"),
