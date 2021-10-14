@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-
-	"github.com/iancoleman/strcase"
 )
 
 func StructToZodSchema(input interface{}) string {
@@ -117,7 +115,10 @@ func fieldName(input reflect.StructField) string {
 		// so in this case, args[0] will be empty, so fall through to using the
 		// raw field name.
 	}
-	return strcase.ToLowerCamel(strcase.ToSnake(input.Name))
+
+	// When Golang marshals a struct to JSON and it doesn't have any JSON tags
+	// that give the fields names, it defaults to just using the field's name.
+	return input.Name
 }
 
 func typeName(t reflect.Type) string {

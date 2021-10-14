@@ -11,17 +11,17 @@ import (
 func TestFieldName(t *testing.T) {
 	assert.Equal(t,
 		fieldName(reflect.StructField{Name: "RCONPassword"}),
-		"rconPassword",
+		"RCONPassword",
 	)
 
 	assert.Equal(t,
 		fieldName(reflect.StructField{Name: "LANMode"}),
-		"lanMode",
+		"LANMode",
 	)
 
 	assert.Equal(t,
 		fieldName(reflect.StructField{Name: "ABC"}),
-		"abc",
+		"ABC",
 	)
 }
 
@@ -66,9 +66,9 @@ func TestStructSimple(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  age: z.number(),
-  height: z.number(),
+  Name: z.string(),
+  Age: z.number(),
+  Height: z.number(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -84,9 +84,9 @@ func TestStructSimplePrefix(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const BotUserSchema = z.object({
-  name: z.string(),
-  age: z.number(),
-  height: z.number(),
+  Name: z.string(),
+  Age: z.number(),
+  Height: z.number(),
 })
 export type BotUser = z.infer<typeof BotUserSchema>
 
@@ -100,7 +100,7 @@ func TestStringArray(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  tags: z.string().array(),
+  Tags: z.string().array(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -116,8 +116,8 @@ func TestStructArray(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  favourites: z.object({
-    name: z.string(),
+  Favourites: z.object({
+    Name: z.string(),
   }).array(),
 })
 export type User = z.infer<typeof UserSchema>
@@ -133,8 +133,8 @@ func TestStringOptional(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  nickname: z.string().optional(),
+  Name: z.string(),
+  Nickname: z.string().optional(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -149,8 +149,8 @@ func TestStringNullable(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  nickname: z.string().nullable(),
+  Name: z.string(),
+  Nickname: z.string().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -165,8 +165,8 @@ func TestStringOptionalNullable(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  nickname: z.string().optional().nullable(),
+  Name: z.string(),
+  Nickname: z.string().optional().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -181,8 +181,8 @@ func TestStringArrayNullable(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  tags: z.string().array().nullable(),
+  Name: z.string(),
+  Tags: z.string().array().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -207,20 +207,20 @@ func TestEverything(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const PostSchema = z.object({
-  title: z.string(),
+  Title: z.string(),
 })
 export type Post = z.infer<typeof PostSchema>
 
 export const UserSchema = z.object({
-  name: z.string(),
-  nickname: z.string().nullable(),
-  age: z.number(),
-  height: z.number(),
-  tags: z.string().array(),
-  favourites: z.object({
-    name: z.string(),
+  Name: z.string(),
+  Nickname: z.string().nullable(),
+  Age: z.number(),
+  Height: z.number(),
+  Tags: z.string().array(),
+  Favourites: z.object({
+    Name: z.string(),
   }).array(),
-  posts: PostSchema.array(),
+  Posts: PostSchema.array(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -234,8 +234,8 @@ func TestStructTime(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  name: z.string(),
-  when: z.string(),
+  Name: z.string(),
+  When: z.string(),
 })
 export type User = z.infer<typeof UserSchema>
 
