@@ -109,7 +109,13 @@ func schemaName(prefix, name string) string {
 func fieldName(input reflect.StructField) string {
 	if json := input.Tag.Get("json"); json != "" {
 		args := strings.Split(json, ",")
-		return args[0]
+		if len(args[0]) > 0 {
+			return args[0]
+		}
+		// This is also valid:
+		// json:",omitempty"
+		// so in this case, args[0] will be empty, so fall through to using the
+		// raw field name.
 	}
 	return strcase.ToLowerCamel(strcase.ToSnake(input.Name))
 }
@@ -152,10 +158,10 @@ func (c *converter) convertStruct(input reflect.Type, indent int) string {
 	fields := input.NumField()
 	for i := 0; i < fields; i++ {
 		field := input.Field(i)
-		optional := isOptional(field.Type) ||
-			strings.Contains(field.Tag.Get("json"), "omitempty")
+		optional := isOptional(field)
+		nullable := isNullable(field)
 
-		line := c.convertField(field, indent+1, optional)
+		line := c.convertField(field, indent+1, optional, nullable)
 
 		output.WriteString(line)
 	}
@@ -203,20 +209,25 @@ func (c *converter) convertType(t reflect.Type, name string, indent int) string 
 	return fmt.Sprintf("z.%s()", ztype)
 }
 
-func (c *converter) convertField(f reflect.StructField, indent int, optional bool) string {
+func (c *converter) convertField(f reflect.StructField, indent int, optional, nullable bool) string {
 	name := fieldName(f)
 
 	optionalCall := ""
 	if optional {
 		optionalCall = ".optional()"
 	}
+	nullableCall := ""
+	if nullable {
+		nullableCall = ".nullable()"
+	}
 
 	return fmt.Sprintf(
-		"%s%s: %s%s,\n",
+		"%s%s: %s%s%s,\n",
 		indentation(indent),
 		name,
 		c.convertType(f.Type, typeName(f.Type), indent),
-		optionalCall)
+		optionalCall,
+		nullableCall)
 }
 
 func (c *converter) convertMap(t reflect.Type, name string, indent int) string {
@@ -225,11 +236,21 @@ func (c *converter) convertMap(t reflect.Type, name string, indent int) string {
 		c.convertType(t.Elem(), name, indent))
 }
 
-func isOptional(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+func isNullable(field reflect.StructField) bool {
+	// pointers can be nil, which are mapped to null in JS/TS.
+	if field.Type.Kind() == reflect.Ptr {
 		return true
 	}
-	if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Ptr {
+	// arrays of pointer types may contain null values
+	if field.Type.Kind() == reflect.Slice && field.Type.Elem().Kind() == reflect.Ptr {
+		return true
+	}
+	return false
+}
+
+func isOptional(field reflect.StructField) bool {
+	// omitempty zero-values are omitted and are mapped to undefined in JS/TS.
+	if strings.Contains(field.Tag.Get("json"), "omitempty") {
 		return true
 	}
 	return false

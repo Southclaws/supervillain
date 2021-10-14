@@ -36,7 +36,6 @@ func TestFieldNameJsonTag(t *testing.T) {
 	)
 }
 
-
 func TestFieldNameJsonTagOmitEmpty(t *testing.T) {
 	type S struct {
 		NotTheFieldName string `json:"fieldName,omitempty"`
@@ -130,7 +129,7 @@ export type User = z.infer<typeof UserSchema>
 func TestStringOptional(t *testing.T) {
 	type User struct {
 		Name     string
-		Nickname *string
+		Nickname string `json:",omitempty"`
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
@@ -143,7 +142,39 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
-func TestStringArrayOptional(t *testing.T) {
+func TestStringNullable(t *testing.T) {
+	type User struct {
+		Name     string
+		Nickname *string
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  name: z.string(),
+  nickname: z.string().nullable(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestStringOptionalNullable(t *testing.T) {
+	type User struct {
+		Name     string
+		Nickname *string `json:",omitempty"` // nil values are omitted
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  name: z.string(),
+  nickname: z.string().optional().nullable(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestStringArrayNullable(t *testing.T) {
 	type User struct {
 		Name string
 		Tags []*string
@@ -151,7 +182,7 @@ func TestStringArrayOptional(t *testing.T) {
 	assert.Equal(t,
 		`export const UserSchema = z.object({
   name: z.string(),
-  tags: z.string().array().optional(),
+  tags: z.string().array().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -182,7 +213,7 @@ export type Post = z.infer<typeof PostSchema>
 
 export const UserSchema = z.object({
   name: z.string(),
-  nickname: z.string().optional(),
+  nickname: z.string().nullable(),
   age: z.number(),
   height: z.number(),
   tags: z.string().array(),
