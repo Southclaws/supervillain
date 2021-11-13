@@ -46,3 +46,8 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 ```
+
+## Caveats
+
+- Does not support self-referential types - should be a simple fix.
+- Sometimes outputs in the wrong order - it really needs an intermediate DAG to solve this.
