@@ -206,6 +206,38 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestMapStringToString(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata map[string]string
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.map(z.string(), z.string()),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestMapStringToInterface(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata map[string]interface{}
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.map(z.string(), z.any()),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
 func TestEverything(t *testing.T) {
 	type Post struct {
 		Title string
