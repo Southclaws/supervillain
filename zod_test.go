@@ -190,6 +190,22 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestInterfaceAny(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata interface{}
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.any(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
 func TestEverything(t *testing.T) {
 	type Post struct {
 		Title string

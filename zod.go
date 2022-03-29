@@ -75,6 +75,7 @@ var typeMapping = map[reflect.Kind]string{
 	reflect.Complex64:  "number",
 	reflect.Complex128: "number",
 	reflect.String:     "string",
+	reflect.Interface:  "any",
 }
 
 type entry struct {
