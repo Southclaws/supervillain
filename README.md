@@ -47,6 +47,34 @@ export const UserSchema = z.object({
 export type User = z.infer<typeof UserSchema>;
 ```
 
+## Custom Types
+
+You can pass type name mappings to custom conversion functions:
+
+```go
+c := supervillain.NewConverter(map[string]supervillain.CustomFn{
+    "github.com/shopspring/decimal.Decimal": func(c *supervillain.Converter, t reflect.Type, s, g string, i int) string {
+        // Shopspring's decimal type serialises to a string.
+        return "z.string()"
+    },
+})
+
+c.Convert(User{
+    Money decimal.Decimal
+})
+```
+
+Outputs:
+
+```typescript
+export const UserSchema = z.object({
+  Money: z.string(),
+})
+export type User = z.infer<typeof UserSchema>
+```
+
+There are some custom types with tests in the "custom" directory.
+
 ## Caveats
 
 - Does not support self-referential types - should be a simple fix.
