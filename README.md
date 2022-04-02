@@ -75,6 +75,14 @@ export type User = z.infer<typeof UserSchema>
 
 There are some custom types with tests in the "custom" directory.
 
+The function signature for custom type handlers is:
+
+```go
+func(c *supervillain.Converter, t reflect.Type, typeName, genericTypeName string, indentLevel int) string
+```
+
+You can use the Converter to process nested types. The `genericTypeName` is the name of the `T` in `Generic[T]` and the indent level is for passing to other converter APIs.
+
 ## Caveats
 
 - Does not support self-referential types - should be a simple fix.
