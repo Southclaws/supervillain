@@ -3,12 +3,43 @@ package supervillain
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 )
 
+func NewConverter(custom map[string]CustomFn) Converter {
+	c := Converter{
+		prefix:  "",
+		outputs: make(map[string]entry),
+		custom:  custom,
+	}
+
+	return c
+}
+
+func (c *Converter) Convert(input interface{}) string {
+	t := reflect.TypeOf(input)
+
+	c.addSchema(t.Name(), c.convertStructTopLevel(t))
+
+	output := strings.Builder{}
+	sorted := []entry{}
+	for _, ent := range c.outputs {
+		sorted = append(sorted, ent)
+	}
+
+	sort.Sort(ByOrder(sorted))
+
+	for _, ent := range sorted {
+		output.WriteString(ent.data)
+		output.WriteString("\n\n")
+	}
+	return output.String()
+}
+
 func StructToZodSchema(input interface{}) string {
-	c := converter{
+	c := Converter{
 		prefix:  "",
 		outputs: make(map[string]entry),
 	}
@@ -33,7 +64,7 @@ func StructToZodSchema(input interface{}) string {
 }
 
 func StructToZodSchemaWithPrefix(prefix string, input interface{}) string {
-	c := converter{
+	c := Converter{
 		prefix:  prefix,
 		outputs: make(map[string]entry),
 	}
@@ -89,13 +120,16 @@ func (a ByOrder) Len() int           { return len(a) }
 func (a ByOrder) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByOrder) Less(i, j int) bool { return a[i].order < a[j].order }
 
-type converter struct {
+type CustomFn func(*Converter, reflect.Type, string, string, int) string
+
+type Converter struct {
 	prefix  string
 	structs int
 	outputs map[string]entry
+	custom  map[string]CustomFn
 }
 
-func (c *converter) addSchema(name string, data string) {
+func (c *Converter) addSchema(name string, data string) {
 	order := c.structs
 	c.outputs[name] = entry{order, data}
 	c.structs = order + 1
@@ -135,7 +169,7 @@ func typeName(t reflect.Type) string {
 	return "UNKNOWN"
 }
 
-func (c *converter) convertStructTopLevel(t reflect.Type) string {
+func (c *Converter) convertStructTopLevel(t reflect.Type) string {
 	output := strings.Builder{}
 
 	name := t.Name()
@@ -151,7 +185,7 @@ func (c *converter) convertStructTopLevel(t reflect.Type) string {
 	return output.String()
 }
 
-func (c *converter) convertStruct(input reflect.Type, indent int) string {
+func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output := strings.Builder{}
 
 	output.WriteString(`z.object({
@@ -174,16 +208,56 @@ func (c *converter) convertStruct(input reflect.Type, indent int) string {
 	return output.String()
 }
 
-func (c *converter) convertType(t reflect.Type, name string, indent int) string {
+var matchGenericTypeName = regexp.MustCompile(`(.+)\[(.+)\]`)
+
+// checking it a reflected type is a generic isn't supported as far as I can see
+// so this simple check looks for a `[` character in the type name: `T1[T2]`.
+func isGeneric(t reflect.Type) bool {
+	return strings.Contains(t.Name(), "[")
+}
+
+// gets the full name and if it's a generic type, strips out the [T] part.
+func getFullName(t reflect.Type) (string, string) {
+	var typename string
+	var generic string
+
+	if isGeneric(t) {
+		m := matchGenericTypeName.FindAllStringSubmatch(t.Name(), 1)[0]
+
+		typename = m[1]
+		generic = m[2]
+	} else {
+		typename = t.Name()
+	}
+
+	return fmt.Sprintf("%s.%s", t.PkgPath(), typename), generic
+}
+
+func (c *Converter) handleCustomType(t reflect.Type, name string, indent int) (string, bool) {
+	fullName, generic := getFullName(t)
+
+	custom, ok := c.custom[fullName]
+	if ok {
+		return custom(c, t, name, generic, indent), true
+	}
+
+	return "", false
+}
+
+func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string {
 	if t.Kind() == reflect.Ptr {
 		inner := t.Elem()
-		return c.convertType(inner, name, indent)
+		return c.ConvertType(inner, name, indent)
+	}
+
+	if custom, ok := c.handleCustomType(t, name, indent); ok {
+		return custom
 	}
 
 	if t.Kind() == reflect.Slice {
 		return fmt.Sprintf(
 			"%s.array()",
-			c.convertType(t.Elem(), name, indent))
+			c.ConvertType(t.Elem(), name, indent))
 	}
 
 	if t.Kind() == reflect.Struct {
@@ -211,7 +285,7 @@ func (c *converter) convertType(t reflect.Type, name string, indent int) string 
 	return fmt.Sprintf("z.%s()", ztype)
 }
 
-func (c *converter) convertField(f reflect.StructField, indent int, optional, nullable bool) string {
+func (c *Converter) convertField(f reflect.StructField, indent int, optional, nullable bool) string {
 	name := fieldName(f)
 
 	optionalCall := ""
@@ -227,15 +301,15 @@ func (c *converter) convertField(f reflect.StructField, indent int, optional, nu
 		"%s%s: %s%s%s,\n",
 		indentation(indent),
 		name,
-		c.convertType(f.Type, typeName(f.Type), indent),
+		c.ConvertType(f.Type, typeName(f.Type), indent),
 		optionalCall,
 		nullableCall)
 }
 
-func (c *converter) convertMap(t reflect.Type, name string, indent int) string {
+func (c *Converter) convertMap(t reflect.Type, name string, indent int) string {
 	return fmt.Sprintf(`z.map(%s, %s)`,
-		c.convertType(t.Key(), name, indent),
-		c.convertType(t.Elem(), name, indent))
+		c.ConvertType(t.Key(), name, indent),
+		c.ConvertType(t.Elem(), name, indent))
 }
 
 func isNullable(field reflect.StructField) bool {

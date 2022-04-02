@@ -1,8 +1,11 @@
-module github.com/Southclaws/supervillain
+module github.com/Southclaws/supervillain/custom/optional
 
 go 1.18
 
-require github.com/stretchr/testify v1.7.1
+require (
+	4d63.com/optional v0.2.0
+	github.com/stretchr/testify v1.7.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

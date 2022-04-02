@@ -290,3 +290,30 @@ export type User = z.infer<typeof UserSchema>
 `,
 		StructToZodSchema(User{}))
 }
+
+func TestCustom(t *testing.T) {
+	c := NewConverter(map[string]CustomFn{
+		"github.com/Southclaws/supervillain.Decimal": func(c *Converter, t reflect.Type, s, g string, i int) string {
+			return "z.string()"
+		},
+	})
+
+	type Decimal struct {
+		value    int
+		exponent int
+	}
+
+	type User struct {
+		Name  string
+		Money Decimal
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Money: z.string(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		c.Convert(User{}))
+}

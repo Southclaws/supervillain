@@ -1,8 +1,11 @@
-module github.com/Southclaws/supervillain
+module github.com/Southclaws/supervillain/custom/decimal
 
 go 1.18
 
-require github.com/stretchr/testify v1.7.1
+require (
+	github.com/shopspring/decimal v1.3.1
+	github.com/stretchr/testify v1.7.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
