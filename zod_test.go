@@ -100,7 +100,7 @@ func TestStringArray(t *testing.T) {
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
-  Tags: z.string().array(),
+  Tags: z.string().array().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -118,7 +118,7 @@ func TestStructArray(t *testing.T) {
 		`export const UserSchema = z.object({
   Favourites: z.object({
     Name: z.string(),
-  }).array(),
+  }).array().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -264,11 +264,11 @@ export const UserSchema = z.object({
   Nickname: z.string().nullable(),
   Age: z.number(),
   Height: z.number(),
-  Tags: z.string().array(),
+  Tags: z.string().array().nullable(),
   Favourites: z.object({
     Name: z.string(),
-  }).array(),
-  Posts: PostSchema.array(),
+  }).array().nullable(),
+  Posts: PostSchema.array().nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 

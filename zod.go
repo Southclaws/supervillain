@@ -288,12 +288,17 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 func (c *Converter) convertField(f reflect.StructField, indent int, optional, nullable bool) string {
 	name := fieldName(f)
 
+	// because nullability is processed before custom types, this makes sure
+	// the custom type has control over nullability.
+	fullName, _ := getFullName(f.Type)
+	_, isCustom := c.custom[fullName]
+
 	optionalCall := ""
 	if optional {
 		optionalCall = ".optional()"
 	}
 	nullableCall := ""
-	if nullable {
+	if nullable && !isCustom {
 		nullableCall = ".nullable()"
 	}
 
@@ -318,7 +323,7 @@ func isNullable(field reflect.StructField) bool {
 		return true
 	}
 	// arrays of pointer types may contain null values
-	if field.Type.Kind() == reflect.Slice && field.Type.Elem().Kind() == reflect.Ptr {
+	if field.Type.Kind() == reflect.Slice {
 		return true
 	}
 	return false
