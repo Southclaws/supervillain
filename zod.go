@@ -312,7 +312,7 @@ func (c *Converter) convertField(f reflect.StructField, indent int, optional, nu
 }
 
 func (c *Converter) convertMap(t reflect.Type, name string, indent int) string {
-	return fmt.Sprintf(`z.map(%s, %s)`,
+	return fmt.Sprintf(`z.record(%s, %s)`,
 		c.ConvertType(t.Key(), name, indent),
 		c.ConvertType(t.Elem(), name, indent))
 }

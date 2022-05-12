@@ -214,7 +214,7 @@ func TestMapStringToString(t *testing.T) {
 	assert.Equal(t,
 		`export const UserSchema = z.object({
   Name: z.string(),
-  Metadata: z.map(z.string(), z.string()),
+  Metadata: z.record(z.string(), z.string()),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -230,7 +230,7 @@ func TestMapStringToInterface(t *testing.T) {
 	assert.Equal(t,
 		`export const UserSchema = z.object({
   Name: z.string(),
-  Metadata: z.map(z.string(), z.any()),
+  Metadata: z.record(z.string(), z.any()),
 })
 export type User = z.infer<typeof UserSchema>
 
