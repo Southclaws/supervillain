@@ -288,6 +288,11 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 func (c *Converter) convertField(f reflect.StructField, indent int, optional, nullable bool) string {
 	name := fieldName(f)
 
+	// fields named `-` are not exported to JSON so don't export zod types
+	if name == "-" {
+		return ""
+	}
+
 	// because nullability is processed before custom types, this makes sure
 	// the custom type has control over nullability.
 	fullName, _ := getFullName(f.Type)
