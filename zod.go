@@ -323,23 +323,49 @@ func (c *Converter) convertMap(t reflect.Type, name string, indent int) string {
 }
 
 func isNullable(field reflect.StructField) bool {
+	// interfaces are currently exported with "any" type, which already includes "null"
+	if isInterface(field) {
+		return false
+	}
 	// pointers can be nil, which are mapped to null in JS/TS.
 	if field.Type.Kind() == reflect.Ptr {
+		// However, if a pointer field is tagged with "omitempty", it usually cannot be exported as "null"
+		// since nil is a pointer's empty value.
+		if isOptional(field) {
+			// Unless it is a pointer to a slice, a map, a pointer, or an interface
+			// because values with those types can themselves be nil and will be exported as "null".
+			k := field.Type.Elem().Kind()
+			return k == reflect.Ptr || k == reflect.Slice || k == reflect.Map
+		}
 		return true
 	}
-	// arrays of pointer types may contain null values
-	if field.Type.Kind() == reflect.Slice {
-		return true
+	// nil slices and maps are exported as null so these types are usually nullable
+	if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Map {
+		// unless the are also optional in which case they are no longer nullable
+		return !isOptional(field)
 	}
 	return false
 }
 
-func isOptional(field reflect.StructField) bool {
-	// omitempty zero-values are omitted and are mapped to undefined in JS/TS.
-	if strings.Contains(field.Tag.Get("json"), "omitempty") {
-		return true
+// Checks whether the first non-pointer type is an interface
+func isInterface(field reflect.StructField) bool {
+	t := field.Type
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
 	}
-	return false
+	return t.Kind() == reflect.Interface
+}
+
+func isOptional(field reflect.StructField) bool {
+	// Non-pointer struct types and direct or indirect interface types should never be optional().
+	// Struct fields that are themselves structs ignore the "omitempty" tag because
+	// structs do not have an empty value.
+	// Interfaces are currently exported with "any" type, which already includes "undefined"
+	if field.Type.Kind() == reflect.Struct || isInterface(field) {
+		return false
+	}
+	// Otherwise, omitempty zero-values are omitted and are mapped to undefined in JS/TS.
+	return strings.Contains(field.Tag.Get("json"), "omitempty")
 }
 
 func indentation(level int) string {
