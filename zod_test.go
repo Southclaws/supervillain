@@ -76,6 +76,25 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestStructSimpleWithOmittedField(t *testing.T) {
+	type User struct {
+		Name        string
+		Age         int
+		Height      float64
+		NotExported string `json:"-"`
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Age: z.number(),
+  Height: z.number(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
 func TestStructSimplePrefix(t *testing.T) {
 	type User struct {
 		Name   string
