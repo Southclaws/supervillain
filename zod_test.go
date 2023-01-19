@@ -145,6 +145,42 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestStructArrayOptional(t *testing.T) {
+	type User struct {
+		Favourites []struct {
+			Name string
+		} `json:",omitempty"`
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Favourites: z.object({
+    Name: z.string(),
+  }).array().optional(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestStructArrayOptionalNullable(t *testing.T) {
+	type User struct {
+		Favourites *[]struct {
+			Name string
+		} `json:",omitempty"`
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Favourites: z.object({
+    Name: z.string(),
+  }).array().optional().nullable(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
 func TestStringOptional(t *testing.T) {
 	type User struct {
 		Name     string
@@ -177,10 +213,26 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
-func TestStringOptionalNullable(t *testing.T) {
+func TestStringOptionalNotNullable(t *testing.T) {
 	type User struct {
 		Name     string
 		Nickname *string `json:",omitempty"` // nil values are omitted
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Nickname: z.string().optional(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestStringOptionalNullable(t *testing.T) {
+	type User struct {
+		Name     string
+		Nickname **string `json:",omitempty"` // nil values are omitted
 	}
 	assert.Equal(t,
 		`export const UserSchema = z.object({
@@ -225,6 +277,54 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestInterfacePointerAny(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata *interface{}
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.any(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestInterfaceEmptyAny(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata interface{} `json:",omitempty"`
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.any(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+func TestInterfacePointerEmptyAny(t *testing.T) {
+	type User struct {
+		Name     string
+		Metadata *interface{} `json:",omitempty"`
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Name: z.string(),
+  Metadata: z.any(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
 func TestMapStringToString(t *testing.T) {
 	type User struct {
 		Name     string
@@ -233,7 +333,7 @@ func TestMapStringToString(t *testing.T) {
 	assert.Equal(t,
 		`export const UserSchema = z.object({
   Name: z.string(),
-  Metadata: z.record(z.string(), z.string()),
+  Metadata: z.record(z.string(), z.string()).nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -249,7 +349,7 @@ func TestMapStringToInterface(t *testing.T) {
 	assert.Equal(t,
 		`export const UserSchema = z.object({
   Name: z.string(),
-  Metadata: z.record(z.string(), z.any()),
+  Metadata: z.record(z.string(), z.any()).nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -262,15 +362,28 @@ func TestEverything(t *testing.T) {
 		Title string
 	}
 	type User struct {
-		Name       string
-		Nickname   *string // pointers become optional
-		Age        int
-		Height     float64
-		Tags       []string
-		Favourites []struct { // nested structs are kept inline
+		Name                 string
+		Nickname             *string // pointers become optional
+		Age                  int
+		Height               float64
+		Tags                 []string
+		TagsOptional         []string   `json:",omitempty"` // slices with omitempty cannot be null
+		TagsOptionalNullable *[]string  `json:",omitempty"` // pointers to slices with omitempty can be null or undefined
+		Favourites           []struct { // nested structs are kept inline
 			Name string
 		}
-		Posts []Post // external structs are emitted as separate exports
+		Posts                         []Post             // external structs are emitted as separate exports
+		Post                          Post               `json:",omitempty"` // this tag is ignored because structs don't have an empty value
+		PostOptional                  *Post              `json:",omitempty"` // single struct pointers with omitempty cannot be null
+		PostOptionalNullable          **Post             `json:",omitempty"` // double struct pointers with omitempty can be null
+		Metadata                      map[string]string  // maps can be null
+		MetadataOptional              map[string]string  `json:",omitempty"` // maps with omitempty cannot be null
+		MetadataOptionalNullable      *map[string]string `json:",omitempty"` // pointers to maps with omitempty can be null or undefined
+		ExtendedProps                 interface{}        // interfaces are just "any" even though they can be null
+		ExtendedPropsOptional         interface{}        `json:",omitempty"` // interfaces with omitempty are still just "any"
+		ExtendedPropsNullable         *interface{}       // pointers to interfaces are just "any"
+		ExtendedPropsOptionalNullable *interface{}       `json:",omitempty"` // pointers to interfaces with omitempty are also just "any"
+		ExtendedPropsVeryIndirect     ****interface{}    // interfaces are always "any" no matter the levels of indirection
 	}
 	assert.Equal(t,
 		`export const PostSchema = z.object({
@@ -284,10 +397,23 @@ export const UserSchema = z.object({
   Age: z.number(),
   Height: z.number(),
   Tags: z.string().array().nullable(),
+  TagsOptional: z.string().array().optional(),
+  TagsOptionalNullable: z.string().array().optional().nullable(),
   Favourites: z.object({
     Name: z.string(),
   }).array().nullable(),
   Posts: PostSchema.array().nullable(),
+  Post: PostSchema,
+  PostOptional: PostSchema.optional(),
+  PostOptionalNullable: PostSchema.optional().nullable(),
+  Metadata: z.record(z.string(), z.string()).nullable(),
+  MetadataOptional: z.record(z.string(), z.string()).optional(),
+  MetadataOptionalNullable: z.record(z.string(), z.string()).optional().nullable(),
+  ExtendedProps: z.any(),
+  ExtendedPropsOptional: z.any(),
+  ExtendedPropsNullable: z.any(),
+  ExtendedPropsOptionalNullable: z.any(),
+  ExtendedPropsVeryIndirect: z.any(),
 })
 export type User = z.infer<typeof UserSchema>
 
