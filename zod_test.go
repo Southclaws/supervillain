@@ -358,14 +358,21 @@ export type User = z.infer<typeof UserSchema>
 }
 
 func TestEverything(t *testing.T) {
+	// The order matters PostWithMetaData needs to be declared after post otherwise it will raise a
+	// `Block-scoped variable 'Post' used before its declaration.` typescript error.
 	type Post struct {
 		Title string
+	}
+	type PostWithMetaData struct {
+		Title string
+		Post  Post
 	}
 	type User struct {
 		Name                 string
 		Nickname             *string // pointers become optional
 		Age                  int
 		Height               float64
+		OldPostWithMetaData  PostWithMetaData
 		Tags                 []string
 		TagsOptional         []string   `json:",omitempty"` // slices with omitempty cannot be null
 		TagsOptionalNullable *[]string  `json:",omitempty"` // pointers to slices with omitempty can be null or undefined
@@ -384,6 +391,8 @@ func TestEverything(t *testing.T) {
 		ExtendedPropsNullable         *interface{}       // pointers to interfaces are just "any"
 		ExtendedPropsOptionalNullable *interface{}       `json:",omitempty"` // pointers to interfaces with omitempty are also just "any"
 		ExtendedPropsVeryIndirect     ****interface{}    // interfaces are always "any" no matter the levels of indirection
+		NewPostWithMetaData           PostWithMetaData
+		VeryNewPost                   Post
 	}
 	assert.Equal(t,
 		`export const PostSchema = z.object({
@@ -391,11 +400,18 @@ func TestEverything(t *testing.T) {
 })
 export type Post = z.infer<typeof PostSchema>
 
+export const PostWithMetaDataSchema = z.object({
+  Title: z.string(),
+  Post: PostSchema,
+})
+export type PostWithMetaData = z.infer<typeof PostWithMetaDataSchema>
+
 export const UserSchema = z.object({
   Name: z.string(),
   Nickname: z.string().nullable(),
   Age: z.number(),
   Height: z.number(),
+  OldPostWithMetaData: PostWithMetaDataSchema,
   Tags: z.string().array().nullable(),
   TagsOptional: z.string().array().optional(),
   TagsOptionalNullable: z.string().array().optional().nullable(),
@@ -414,6 +430,8 @@ export const UserSchema = z.object({
   ExtendedPropsNullable: z.any(),
   ExtendedPropsOptionalNullable: z.any(),
   ExtendedPropsVeryIndirect: z.any(),
+  NewPostWithMetaData: PostWithMetaDataSchema,
+  VeryNewPost: PostSchema,
 })
 export type User = z.infer<typeof UserSchema>
 
