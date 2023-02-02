@@ -130,9 +130,13 @@ type Converter struct {
 }
 
 func (c *Converter) addSchema(name string, data string) {
-	order := c.structs
-	c.outputs[name] = entry{order, data}
-	c.structs = order + 1
+	//First check if the object already exists. If it does do not replace. This is needed for second order
+	_, ok := c.outputs[name]
+	if !ok {
+		order := c.structs
+		c.outputs[name] = entry{order, data}
+		c.structs = order + 1
+	}
 }
 
 func schemaName(prefix, name string) string {
