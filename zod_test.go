@@ -357,6 +357,28 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestMapWithStruct(t *testing.T) {
+
+	type PostWithMetaData struct {
+		Title string
+	}
+	type User struct {
+		MapWithStruct map[string]PostWithMetaData
+	}
+	assert.Equal(t,
+		`export const PostWithMetaDataSchema = z.object({
+  Title: z.string(),
+})
+export type PostWithMetaData = z.infer<typeof PostWithMetaDataSchema>
+
+export const UserSchema = z.object({
+  MapWithStruct: z.record(z.string(), PostWithMetaDataSchema).nullable(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`, StructToZodSchema(User{}))
+}
+
 func TestEverything(t *testing.T) {
 	// The order matters PostWithMetaData needs to be declared after post otherwise it will raise a
 	// `Block-scoped variable 'Post' used before its declaration.` typescript error.
@@ -393,6 +415,7 @@ func TestEverything(t *testing.T) {
 		ExtendedPropsVeryIndirect     ****interface{}    // interfaces are always "any" no matter the levels of indirection
 		NewPostWithMetaData           PostWithMetaData
 		VeryNewPost                   Post
+		MapWithStruct                 map[string]PostWithMetaData
 	}
 	assert.Equal(t,
 		`export const PostSchema = z.object({
@@ -432,6 +455,7 @@ export const UserSchema = z.object({
   ExtendedPropsVeryIndirect: z.any(),
   NewPostWithMetaData: PostWithMetaDataSchema,
   VeryNewPost: PostSchema,
+  MapWithStruct: z.record(z.string(), PostWithMetaDataSchema).nullable(),
 })
 export type User = z.infer<typeof UserSchema>
 

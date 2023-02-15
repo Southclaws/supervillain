@@ -170,6 +170,10 @@ func typeName(t reflect.Type) string {
 	if t.Kind() == reflect.Slice {
 		return typeName(t.Elem())
 	}
+	if t.Kind() == reflect.Map {
+		return typeName(t.Elem())
+	}
+
 	return "UNKNOWN"
 }
 
