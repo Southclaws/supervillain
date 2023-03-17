@@ -38,6 +38,26 @@ func (c *Converter) Convert(input interface{}) string {
 	return output.String()
 }
 
+func (c *Converter) ConvertSlice(inputs []interface{}) string {
+	for _, input := range inputs {
+		t := reflect.TypeOf(input)
+		c.addSchema(t.Name(), c.convertStructTopLevel(t))
+	}
+	output := strings.Builder{}
+	sorted := []entry{}
+	for _, ent := range c.outputs {
+		sorted = append(sorted, ent)
+	}
+
+	sort.Sort(ByOrder(sorted))
+
+	for _, ent := range sorted {
+		output.WriteString(ent.data)
+		output.WriteString("\n\n")
+	}
+	return output.String()
+}
+
 func StructToZodSchema(input interface{}) string {
 	c := Converter{
 		prefix:  "",

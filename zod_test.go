@@ -462,6 +462,46 @@ export type User = z.infer<typeof UserSchema>
 `, StructToZodSchema(User{}))
 }
 
+func TestConvertSlice(t *testing.T) {
+	type Foo struct {
+		Bar string
+		Baz string
+		Quz string
+	}
+
+	type Zip struct {
+		Zap *Foo
+	}
+
+	type Whim struct {
+		Wham *Foo
+	}
+	c := NewConverter(map[string]CustomFn{})
+	types := []interface{}{
+		Zip{},
+		Whim{},
+	}
+	assert.Equal(t,
+		`export const ZipSchema = z.object({
+  Zap: FooSchema.nullable(),
+})
+export type Zip = z.infer<typeof ZipSchema>
+
+export const FooSchema = z.object({
+  Bar: z.string(),
+  Baz: z.string(),
+  Quz: z.string(),
+})
+export type Foo = z.infer<typeof FooSchema>
+
+export const WhimSchema = z.object({
+  Wham: FooSchema.nullable(),
+})
+export type Whim = z.infer<typeof WhimSchema>
+
+`, c.ConvertSlice(types))
+}
+
 func TestStructTime(t *testing.T) {
 	type User struct {
 		Name string
