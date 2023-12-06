@@ -1,6 +1,7 @@
 package supervillain
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -8,11 +9,28 @@ import (
 	"strings"
 )
 
-func NewConverter(custom map[string]CustomFn) Converter {
+type Option interface {
+	apply(c *Converter)
+}
+
+type strictCustomSchemasOption bool
+
+func (s strictCustomSchemasOption) apply(c *Converter) {
+	c.strictCustomSchemas = bool(s)
+}
+
+func WithStrictCustomSchemas(s bool) Option {
+	return strictCustomSchemasOption(s)
+}
+
+func NewConverter(custom map[string]CustomFn, opts ...Option) Converter {
 	c := Converter{
 		prefix:  "",
 		outputs: make(map[string]entry),
 		custom:  custom,
+	}
+	for _, opt := range opts {
+		opt.apply(&c)
 	}
 
 	return c
@@ -58,10 +76,14 @@ func (c *Converter) ConvertSlice(inputs []interface{}) string {
 	return output.String()
 }
 
-func StructToZodSchema(input interface{}) string {
+func StructToZodSchema(input interface{}, opts ...Option) string {
 	c := Converter{
 		prefix:  "",
 		outputs: make(map[string]entry),
+	}
+
+	for _, opt := range opts {
+		opt.apply(&c)
 	}
 
 	t := reflect.TypeOf(input)
@@ -83,10 +105,14 @@ func StructToZodSchema(input interface{}) string {
 	return output.String()
 }
 
-func StructToZodSchemaWithPrefix(prefix string, input interface{}) string {
+func StructToZodSchemaWithPrefix(prefix string, input interface{}, opts ...Option) string {
 	c := Converter{
 		prefix:  prefix,
 		outputs: make(map[string]entry),
+	}
+
+	for _, opt := range opts {
+		opt.apply(&c)
 	}
 
 	t := reflect.TypeOf(input)
@@ -143,10 +169,11 @@ func (a ByOrder) Less(i, j int) bool { return a[i].order < a[j].order }
 type CustomFn func(*Converter, reflect.Type, string, string, int) string
 
 type Converter struct {
-	prefix  string
-	structs int
-	outputs map[string]entry
-	custom  map[string]CustomFn
+	prefix              string
+	structs             int
+	outputs             map[string]entry
+	custom              map[string]CustomFn
+	strictCustomSchemas bool
 }
 
 func (c *Converter) addSchema(name string, data string) {
@@ -316,6 +343,16 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 		return custom
 	}
 
+	fullName, _ := getFullName(t)
+	if fullName == "time.Time" {
+		// timestamps are serialised to strings.
+		return "z.string()"
+	}
+
+	if c.strictCustomSchemas && t.Implements(reflect.TypeOf((*json.Marshaler)(nil)).Elem()) {
+		panic(fmt.Sprint("found type with custom marshalling but no custom schema: ", fullName))
+	}
+
 	if t.Kind() == reflect.Slice {
 		return fmt.Sprintf(
 			"%s.array()",
@@ -326,9 +363,6 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 		// Handle nested un-named structs - these are inline.
 		if t.Name() == "" {
 			return c.convertStruct(t, indent)
-		} else if t.Name() == "Time" {
-			// timestamps are serialised to strings.
-			return "z.string()"
 		} else {
 			c.addSchema(name, c.convertStructTopLevel(t))
 			return schemaName(c.prefix, name)

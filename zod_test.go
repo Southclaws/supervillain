@@ -1,6 +1,7 @@
 package supervillain
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -623,4 +624,43 @@ func TestZodSchemaUnexpected(t *testing.T) {
 	assert.Panics(t, func() {
 		StructToZodSchema(User{})
 	})
+}
+
+type StateWithoutSchema int
+
+func (s StateWithoutSchema) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s StateWithoutSchema) String() string {
+	return fmt.Sprint(int(s))
+}
+
+func TestStrictCustom(t *testing.T) {
+	type Job struct {
+		State StateWithoutSchema
+	}
+
+	c := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(true))
+	assert.Panics(t, func() {
+		c.Convert(Job{})
+	})
+
+	c2 := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(false))
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.number(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`, c2.Convert(Job{}))
+
+	c3 := NewConverter(map[string]CustomFn{} /* defaults to false */)
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.number(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`, c3.Convert(Job{}))
 }

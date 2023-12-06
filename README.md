@@ -124,6 +124,16 @@ func(c *supervillain.Converter, t reflect.Type, typeName, genericTypeName string
 
 You can use the Converter to process nested types. The `genericTypeName` is the name of the `T` in `Generic[T]` and the indent level is for passing to other converter APIs.
 
+### Custom Schema Enforcement
+
+Types with a custom MarshalJSON() method but no custom schema are typically problematic, since the generated schema may not match the custom marshalled format. You can use the `WithStrictCustomSchemas` option to cause conversion to fail (panic) if such a type is found:
+
+```go
+c := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(true))
+// or
+StructToZodSchema(User{}, WithStrictCustomSchemas(true))
+```
+
 ## Caveats
 
 - Does not support self-referential types - should be a simple fix.
