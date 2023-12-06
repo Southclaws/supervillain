@@ -261,12 +261,46 @@ func getFullName(t reflect.Type) (string, string) {
 	return fmt.Sprintf("%s.%s", t.PkgPath(), typename), generic
 }
 
+type ConstantSchema interface {
+	ZodSchema() string
+}
+
+type DynamicSchema interface {
+	ZodSchema(c *Converter, t reflect.Type, name, generic string, indent int) string
+}
+
+type DynamicFunctionSchema interface {
+	ZodSchema(convert func(t reflect.Type, name string, indent int) string, t reflect.Type, name, generic string, indent int) string
+}
+
+func (c *Converter) isCustom(t reflect.Type) bool {
+	fullName, _ := getFullName(t)
+	_, inMap := c.custom[fullName]
+	return (inMap ||
+		t.Implements(reflect.TypeOf((*ConstantSchema)(nil)).Elem())) ||
+		t.Implements(reflect.TypeOf((*DynamicSchema)(nil)).Elem()) ||
+		t.Implements(reflect.TypeOf((*DynamicFunctionSchema)(nil)).Elem())
+}
+
 func (c *Converter) handleCustomType(t reflect.Type, name string, indent int) (string, bool) {
 	fullName, generic := getFullName(t)
 
 	custom, ok := c.custom[fullName]
 	if ok {
 		return custom(c, t, name, generic, indent), true
+	}
+
+	switch v := reflect.Zero(t).Interface().(type) {
+	case ConstantSchema:
+		return v.ZodSchema(), true
+	case DynamicSchema:
+		return v.ZodSchema(c, t, name, generic, indent), true
+	case DynamicFunctionSchema:
+		return v.ZodSchema(c.ConvertType, t, name, generic, indent), true
+	}
+
+	if _, ok := t.MethodByName("ZodSchema"); ok {
+		panic(fmt.Sprint("found a ZodSchema method with unexpected signature on type: ", fullName))
 	}
 
 	return "", false
@@ -323,8 +357,7 @@ func (c *Converter) convertField(f reflect.StructField, indent int, optional, nu
 
 	// because nullability is processed before custom types, this makes sure
 	// the custom type has control over nullability.
-	fullName, _ := getFullName(f.Type)
-	_, isCustom := c.custom[fullName]
+	isCustom := c.isCustom(f.Type)
 
 	optionalCall := ""
 	if optional {
