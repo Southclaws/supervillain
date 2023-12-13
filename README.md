@@ -49,7 +49,48 @@ export type User = z.infer<typeof UserSchema>;
 
 ## Custom Types
 
-You can pass type name mappings to custom conversion functions:
+### ZodSchema() method
+
+You can define a custom conversion using a `ZodSchema()` method. This should have one of the following types:
+```go
+ZodSchema() string
+ZodSchema(c *supervillain.Converter, t reflect.Type, name, generic string, indent int) string
+ZodSchema(convert func(t reflect.Type, name string, indent int) string, t reflect.Type, name, generic string, indent int) string
+```
+(The first signature is available to simplify the simple case; the last signature is available in case you do not want the package defining the type to depend on supervillain.)
+
+Zod will obtain a schema by creating a zero value of your type and calling its ZodSchema() method.
+
+```go
+type State int
+
+func (s State) MarshalJSON() ([]byte, error) {
+  return json.Marshal(fmt.Sprint(s))
+}
+
+func (s State) ZodSchema() string {
+  return "z.string()"
+}
+
+type Job struct {
+  State State
+}
+
+c.Convert(Job{})
+```
+
+Outputs:
+
+```typescript
+export const JobSchema = z.object({
+  State: z.string(),
+})
+export type Job = z.infer<typeof JobSchema>
+```
+
+### Mapping
+
+If you don't control the type yourself, you can also pass a map of type names to custom conversion functions:
 
 ```go
 c := supervillain.NewConverter(map[string]supervillain.CustomFn{

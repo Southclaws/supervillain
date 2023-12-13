@@ -1,6 +1,7 @@
 package supervillain
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -543,4 +544,83 @@ export type User = z.infer<typeof UserSchema>
 
 `,
 		c.Convert(User{}))
+}
+
+type State int
+
+func (s State) ZodSchema() string {
+	return "z.string()"
+}
+
+func TestZodSchemaConstant(t *testing.T) {
+	type Job struct {
+		State State
+	}
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.string(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`,
+		StructToZodSchema(Job{}))
+}
+
+type Set[T comparable] map[T]struct{}
+
+func (s Set[T]) ZodSchema(c *Converter, t reflect.Type, name, generic string, indent int) string {
+	return fmt.Sprintf("%s.array()", c.ConvertType(t.Key(), name, indent))
+}
+
+func TestZodSchemaDynamic(t *testing.T) {
+	type User struct {
+		Nicknames       Set[string]
+		FavoriteNumbers Set[int]
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Nicknames: z.string().array(),
+  FavoriteNumbers: z.number().array(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+type Set2[T comparable] map[T]struct{}
+
+func (s Set2[T]) ZodSchema(convert func(t reflect.Type, name string, indent int) string, t reflect.Type, name, generic string, indent int) string {
+	return fmt.Sprintf("%s.array()", convert(t.Key(), name, indent))
+}
+
+func TestZodSchemaDynamicFunction(t *testing.T) {
+	type User struct {
+		Nicknames       Set2[string]
+		FavoriteNumbers Set2[int]
+	}
+	assert.Equal(t,
+		`export const UserSchema = z.object({
+  Nicknames: z.string().array(),
+  FavoriteNumbers: z.number().array(),
+})
+export type User = z.infer<typeof UserSchema>
+
+`,
+		StructToZodSchema(User{}))
+}
+
+type Strange int
+
+func (s Strange) ZodSchema(weird int, signature string) int {
+	return int(s)
+}
+
+func TestZodSchemaUnexpected(t *testing.T) {
+	type User struct {
+		Strange Strange
+	}
+	assert.Panics(t, func() {
+		StructToZodSchema(User{})
+	})
 }
