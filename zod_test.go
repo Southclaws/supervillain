@@ -567,6 +567,26 @@ export type Job = z.infer<typeof JobSchema>
 		StructToZodSchema(Job{}))
 }
 
+type StatePtrReceiver int
+
+func (s *StatePtrReceiver) ZodSchema() string {
+	return "z.string()"
+}
+
+func TestZodSchemaConstantPtrReceiver(t *testing.T) {
+	type Job struct {
+		State StatePtrReceiver
+	}
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.string(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`,
+		StructToZodSchema(Job{}))
+}
+
 type Set[T comparable] map[T]struct{}
 
 func (s Set[T]) ZodSchema(c *Converter, t reflect.Type, name, generic string, indent int) string {
@@ -639,6 +659,45 @@ func (s StateWithoutSchema) String() string {
 func TestStrictCustom(t *testing.T) {
 	type Job struct {
 		State StateWithoutSchema
+	}
+
+	c := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(true))
+	assert.Panics(t, func() {
+		c.Convert(Job{})
+	})
+
+	c2 := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(false))
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.number(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`, c2.Convert(Job{}))
+
+	c3 := NewConverter(map[string]CustomFn{} /* defaults to false */)
+	assert.Equal(t,
+		`export const JobSchema = z.object({
+  State: z.number(),
+})
+export type Job = z.infer<typeof JobSchema>
+
+`, c3.Convert(Job{}))
+}
+
+type StateWithoutSchemaPtrReceiver int
+
+func (s *StateWithoutSchemaPtrReceiver) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s *StateWithoutSchemaPtrReceiver) String() string {
+	return fmt.Sprint(int(*s))
+}
+
+func TestStrictCustomPtrReceiver(t *testing.T) {
+	type Job struct {
+		State StateWithoutSchemaPtrReceiver
 	}
 
 	c := NewConverter(map[string]CustomFn{}, WithStrictCustomSchemas(true))

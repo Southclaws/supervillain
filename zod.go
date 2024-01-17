@@ -303,10 +303,14 @@ type DynamicFunctionSchema interface {
 func (c *Converter) isCustom(t reflect.Type) bool {
 	fullName, _ := getFullName(t)
 	_, inMap := c.custom[fullName]
+	ptrT := reflect.PointerTo(t)
 	return (inMap ||
 		t.Implements(reflect.TypeOf((*ConstantSchema)(nil)).Elem())) ||
 		t.Implements(reflect.TypeOf((*DynamicSchema)(nil)).Elem()) ||
-		t.Implements(reflect.TypeOf((*DynamicFunctionSchema)(nil)).Elem())
+		t.Implements(reflect.TypeOf((*DynamicFunctionSchema)(nil)).Elem()) ||
+		ptrT.Implements(reflect.TypeOf((*ConstantSchema)(nil)).Elem()) ||
+		ptrT.Implements(reflect.TypeOf((*DynamicSchema)(nil)).Elem()) ||
+		ptrT.Implements(reflect.TypeOf((*DynamicFunctionSchema)(nil)).Elem())
 }
 
 func (c *Converter) handleCustomType(t reflect.Type, name string, indent int) (string, bool) {
@@ -318,6 +322,14 @@ func (c *Converter) handleCustomType(t reflect.Type, name string, indent int) (s
 	}
 
 	switch v := reflect.Zero(t).Interface().(type) {
+	case ConstantSchema:
+		return v.ZodSchema(), true
+	case DynamicSchema:
+		return v.ZodSchema(c, t, name, generic, indent), true
+	case DynamicFunctionSchema:
+		return v.ZodSchema(c.ConvertType, t, name, generic, indent), true
+	}
+	switch v := reflect.Zero(reflect.PointerTo(t)).Interface().(type) {
 	case ConstantSchema:
 		return v.ZodSchema(), true
 	case DynamicSchema:
@@ -349,7 +361,9 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 		return "z.string()"
 	}
 
-	if c.strictCustomSchemas && t.Implements(reflect.TypeOf((*json.Marshaler)(nil)).Elem()) {
+	if c.strictCustomSchemas &&
+		(t.Implements(reflect.TypeOf((*json.Marshaler)(nil)).Elem()) ||
+			reflect.PointerTo(t).Implements(reflect.TypeOf((*json.Marshaler)(nil)).Elem())) {
 		panic(fmt.Sprint("found type with custom marshalling but no custom schema: ", fullName))
 	}
 
