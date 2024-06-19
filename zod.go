@@ -368,6 +368,12 @@ func (c *Converter) ConvertType(t reflect.Type, name string, indent int) string 
 	}
 
 	if t.Kind() == reflect.Slice {
+		if t.Elem().Kind() == reflect.Uint8 {
+			// Per https://pkg.go.dev/encoding/json#Marshal, []byte is marshalled as a
+			// base64-encoded string.
+			return "z.string()"
+		}
+
 		return fmt.Sprintf(
 			"%s.array()",
 			c.ConvertType(t.Elem(), name, indent))
