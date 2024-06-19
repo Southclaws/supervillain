@@ -263,6 +263,20 @@ export type User = z.infer<typeof UserSchema>
 		StructToZodSchema(User{}))
 }
 
+func TestBytes(t *testing.T) {
+	type Message struct {
+		Data []byte
+	}
+	assert.Equal(t,
+		`export const MessageSchema = z.object({
+  Data: z.string().nullable(),
+})
+export type Message = z.infer<typeof MessageSchema>
+
+`,
+		StructToZodSchema(Message{}))
+}
+
 func TestInterfaceAny(t *testing.T) {
 	type User struct {
 		Name     string
