@@ -249,8 +249,11 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	fields := input.NumField()
 	for i := 0; i < fields; i++ {
 		field := input.Field(i)
-		if field.Anonymous && field.Type.Kind() == reflect.Ptr {
-			inlineStruct := field.Type.Elem()
+		if field.Anonymous {
+			inlineStruct := field.Type
+			if inlineStruct.Kind() == reflect.Ptr {
+				inlineStruct = inlineStruct.Elem()
+			}
 			inlineFields := inlineStruct.NumField()
 			for j := 0; j < inlineFields; j++ {
 				inlineField := inlineStruct.Field(j)
