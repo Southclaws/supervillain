@@ -744,8 +744,13 @@ func TestInlineStructField(t *testing.T) {
 		InlineField2 *string `json:"inlineField2,omitempty"`
 	}
 
+	type TestInline2 struct {
+		InlineField3 string `json:"inlineField3"`
+	}
+
 	type Test struct {
 		*TestInline `json:",inline"`
+		TestInline2 `json:",inline"`
 		TestField   string `json:"testField"`
 	}
 
@@ -753,6 +758,7 @@ func TestInlineStructField(t *testing.T) {
 		`export const TestSchema = z.object({
   inlineField1: z.string(),
   inlineField2: z.string().optional(),
+	inlineField3: z.string(),
   testField: z.string(),
 })
 export type Test = z.infer<typeof TestSchema>
