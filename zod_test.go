@@ -758,7 +758,7 @@ func TestInlineStructField(t *testing.T) {
 		`export const TestSchema = z.object({
   inlineField1: z.string(),
   inlineField2: z.string().optional(),
-	inlineField3: z.string(),
+  inlineField3: z.string(),
   testField: z.string(),
 })
 export type Test = z.infer<typeof TestSchema>
