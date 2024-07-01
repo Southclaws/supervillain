@@ -536,7 +536,7 @@ export type User = z.infer<typeof UserSchema>
 
 func TestCustom(t *testing.T) {
 	c := NewConverter(map[string]CustomFn{
-		"github.com/Southclaws/supervillain.Decimal": func(c *Converter, t reflect.Type, s, g string, i int) string {
+		"github.com/m4tty-d/supervillain.Decimal": func(c *Converter, t reflect.Type, s, g string, i int) string {
 			return "z.string()"
 		},
 	})

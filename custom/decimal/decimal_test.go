@@ -3,8 +3,8 @@ package decimal_test
 import (
 	"testing"
 
-	"github.com/Southclaws/supervillain"
-	customdecimal "github.com/Southclaws/supervillain/custom/decimal"
+	"github.com/m4tty-d/supervillain"
+	customdecimal "github.com/m4tty-d/supervillain/custom/decimal"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )

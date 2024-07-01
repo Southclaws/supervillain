@@ -1,4 +1,4 @@
-module github.com/Southclaws/supervillain/custom/optional
+module github.com/m4tty-d/supervillain/custom/optional
 
 go 1.18
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/Southclaws/supervillain"
+	"github.com/m4tty-d/supervillain"
 )
 
 type Set[T comparable] map[T]struct{}

@@ -3,8 +3,8 @@ package set_test
 import (
 	"testing"
 
-	"github.com/Southclaws/supervillain"
-	"github.com/Southclaws/supervillain/custom/set"
+	"github.com/m4tty-d/supervillain"
+	"github.com/m4tty-d/supervillain/custom/set"
 	"github.com/stretchr/testify/assert"
 )
 
