@@ -737,3 +737,42 @@ export type Job = z.infer<typeof JobSchema>
 
 `, c3.Convert(Job{}))
 }
+
+func TestInlineStructField(t *testing.T) {
+	type TestInline struct {
+		InlineField1 string  `json:"inlineField1"`
+		InlineField2 *string `json:"inlineField2,omitempty"`
+	}
+
+	type Embedded struct {
+		EmbeddedField1 string `json:"embeddedField1"`
+	}
+
+	type TestInline2 struct {
+		InlineField3 string `json:"inlineField3"`
+		Embedded     `json:"embedded"`
+	}
+
+	type Test struct {
+		*TestInline `json:",inline"`
+		TestInline2 `json:",inline"`
+		TestField   string `json:"testField"`
+	}
+
+	assert.Equal(t,
+		`export const EmbeddedSchema = z.object({
+  embeddedField1: z.string(),
+})
+export type Embedded = z.infer<typeof EmbeddedSchema>
+
+export const TestSchema = z.object({
+  inlineField1: z.string(),
+  inlineField2: z.string().optional(),
+  inlineField3: z.string(),
+  embedded: EmbeddedSchema,
+  testField: z.string(),
+})
+export type Test = z.infer<typeof TestSchema>
+
+`, StructToZodSchema(Test{}))
+}

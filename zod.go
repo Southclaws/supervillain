@@ -249,12 +249,25 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	fields := input.NumField()
 	for i := 0; i < fields; i++ {
 		field := input.Field(i)
-		optional := isOptional(field)
-		nullable := isNullable(field)
-
-		line := c.convertField(field, indent+1, optional, nullable)
-
-		output.WriteString(line)
+		if field.Anonymous || strings.Contains(field.Tag.Get("json"), "inline") {
+			inlineStruct := field.Type
+			if inlineStruct.Kind() == reflect.Ptr {
+				inlineStruct = inlineStruct.Elem()
+			}
+			inlineFields := inlineStruct.NumField()
+			for j := 0; j < inlineFields; j++ {
+				inlineField := inlineStruct.Field(j)
+				optional := isOptional(inlineField)
+				nullable := isNullable(inlineField)
+				line := c.convertField(inlineField, indent+1, optional, nullable)
+				output.WriteString(line)
+			}
+		} else {
+			optional := isOptional(field)
+			nullable := isNullable(field)
+			line := c.convertField(field, indent+1, optional, nullable)
+			output.WriteString(line)
+		}
 	}
 
 	output.WriteString(indentation(indent))
