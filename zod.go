@@ -249,7 +249,7 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	fields := input.NumField()
 	for i := 0; i < fields; i++ {
 		field := input.Field(i)
-		if field.Anonymous {
+		if field.Anonymous || strings.Contains(field.Tag.Get("json"), "inline") {
 			inlineStruct := field.Type
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
