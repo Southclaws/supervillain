@@ -1,4 +1,4 @@
-module github.com/m4tty-d/supervillain
+module github.com/Southclaws/supervillain
 
 go 1.18
 
