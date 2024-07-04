@@ -776,3 +776,81 @@ export type Test = z.infer<typeof TestSchema>
 
 `, StructToZodSchema(Test{}))
 }
+
+func TestDeeplyNestedInlineStructs(t *testing.T) {
+	type BaseStruct struct {
+		MainField    string  `json:"mainField"`
+		OptionalInfo *string `json:"optionalInfo,omitempty"`
+	}
+
+	type ExtendedStruct struct {
+		*BaseStruct `json:",inline"`
+		ExtraField1 *int    `json:"extraField1,omitempty"`
+		ExtraField2 *string `json:"extraField2,omitempty"`
+	}
+
+	type NestedStruct struct {
+		*ExtendedStruct `json:",inline"`
+		UniqueField     string `json:"uniqueField"`
+	}
+
+	type RootStruct struct {
+		*BaseStruct `json:",inline"`
+		NestedArray []NestedStruct `json:"nestedArray"`
+	}
+
+	assert.Equal(t,
+		`export const NestedStructSchema = z.object({
+  mainField: z.string(),
+  optionalInfo: z.string().optional(),
+  extraField1: z.number().optional(),
+  extraField2: z.string().optional(),
+  uniqueField: z.string(),
+})
+export type NestedStruct = z.infer<typeof NestedStructSchema>
+
+export const RootStructSchema = z.object({
+  mainField: z.string(),
+  optionalInfo: z.string().optional(),
+  nestedArray: NestedStructSchema.array().nullable(),
+})
+export type RootStruct = z.infer<typeof RootStructSchema>
+
+`, StructToZodSchema(RootStruct{}))
+}
+
+func TestMultipleLevelsInlineEmbedding(t *testing.T) {
+	type BaseStruct struct {
+		BaseField string `json:"baseField"`
+	}
+
+	type MiddleStruct struct {
+		*BaseStruct
+		MiddleField int `json:"middleField"`
+	}
+
+	type TopStruct struct {
+		MiddleStruct
+		TopField bool `json:"topField"`
+	}
+
+	assert.Equal(t,
+		`export const BaseStructSchema = z.object({
+  baseField: z.string(),
+})
+export type BaseStruct = z.infer<typeof BaseStructSchema>
+
+export const MiddleStructSchema = z.object({
+  BaseStruct: BaseStructSchema.nullable(),
+  middleField: z.number(),
+})
+export type MiddleStruct = z.infer<typeof MiddleStructSchema>
+
+export const TopStructSchema = z.object({
+  MiddleStruct: MiddleStructSchema,
+  topField: z.boolean(),
+})
+export type TopStruct = z.infer<typeof TopStructSchema>
+
+`, StructToZodSchema(TopStruct{}))
+}
