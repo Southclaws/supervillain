@@ -246,34 +246,31 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output.WriteString(`z.object({
 `)
 
-	fields := input.NumField()
-	for i := 0; i < fields; i++ {
-		field := input.Field(i)
-		if field.Anonymous || strings.Contains(field.Tag.Get("json"), "inline") {
-			inlineStruct := field.Type
-			if inlineStruct.Kind() == reflect.Ptr {
-				inlineStruct = inlineStruct.Elem()
-			}
-			inlineFields := inlineStruct.NumField()
-			for j := 0; j < inlineFields; j++ {
-				inlineField := inlineStruct.Field(j)
-				optional := isOptional(inlineField)
-				nullable := isNullable(inlineField)
-				line := c.convertField(inlineField, indent+1, optional, nullable)
-				output.WriteString(line)
-			}
-		} else {
-			optional := isOptional(field)
-			nullable := isNullable(field)
-			line := c.convertField(field, indent+1, optional, nullable)
-			output.WriteString(line)
-		}
-	}
+	c.convertStructFields(&output, input, indent+1)
 
 	output.WriteString(indentation(indent))
 	output.WriteString(`})`)
 
 	return output.String()
+}
+
+func (c *Converter) convertStructFields(output *strings.Builder, structType reflect.Type, indent int) {
+	fields := structType.NumField()
+	for i := 0; i < fields; i++ {
+		field := structType.Field(i)
+		if structType.Name() == "" && field.Anonymous || field.Tag.Get("json") == ",inline" {
+			inlineStruct := field.Type
+			if inlineStruct.Kind() == reflect.Ptr {
+				inlineStruct = inlineStruct.Elem()
+			}
+			c.convertStructFields(output, inlineStruct, indent)
+		} else {
+			optional := isOptional(field)
+			nullable := isNullable(field)
+			line := c.convertField(field, indent, optional, nullable)
+			output.WriteString(line)
+		}
+	}
 }
 
 var matchGenericTypeName = regexp.MustCompile(`(.+)\[(.+)\]`)
