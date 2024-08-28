@@ -246,7 +246,7 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output.WriteString(`z.object({
 `)
 
-	c.convertStructFields(&output, input, indent+1)
+	c.convertStructFields(&output, input, indent+1, make(map[string]string))
 
 	output.WriteString(indentation(indent))
 	output.WriteString(`})`)
@@ -254,21 +254,28 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	return output.String()
 }
 
-func (c *Converter) convertStructFields(output *strings.Builder, structType reflect.Type, indent int) {
-	fields := structType.NumField()
-	for i := 0; i < fields; i++ {
+func (c *Converter) convertStructFields(output *strings.Builder, structType reflect.Type, indent int, fields map[string]string) {
+	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-		if structType.Name() == "" && field.Anonymous || field.Tag.Get("json") == ",inline" {
+
+		shouldInlineField := structType.Name() == "" && field.Anonymous || field.Tag.Get("json") == ",inline"
+		if shouldInlineField {
 			inlineStruct := field.Type
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
 			}
-			c.convertStructFields(output, inlineStruct, indent)
+			c.convertStructFields(output, inlineStruct, indent, fields)
 		} else {
+			name := fieldName(field)
+			if name == "-" || fields[name] != "" {
+				continue
+			}
+
 			optional := isOptional(field)
 			nullable := isNullable(field)
 			line := c.convertField(field, indent, optional, nullable)
 			output.WriteString(line)
+			fields[name] = line
 		}
 	}
 }
