@@ -3,7 +3,7 @@ package decimal
 import (
 	"reflect"
 
-	"github.com/m4tty-d/supervillain"
+	"github.com/Southclaws/supervillain"
 )
 
 var (

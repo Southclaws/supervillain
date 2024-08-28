@@ -1,4 +1,4 @@
-module github.com/m4tty-d/supervillain/custom/decimal
+module github.com/Southclaws/supervillain/custom/decimal
 
 go 1.18
 

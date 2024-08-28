@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"4d63.com/optional"
-	"github.com/m4tty-d/supervillain"
-	customoptional "github.com/m4tty-d/supervillain/custom/optional"
+	"github.com/Southclaws/supervillain"
+	customoptional "github.com/Southclaws/supervillain/custom/optional"
 	"github.com/stretchr/testify/assert"
 )
 

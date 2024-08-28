@@ -3,8 +3,8 @@ package state_test
 import (
 	"testing"
 
-	"github.com/m4tty-d/supervillain"
-	"github.com/m4tty-d/supervillain/custom/state"
+	"github.com/Southclaws/supervillain"
+	"github.com/Southclaws/supervillain/custom/state"
 	"github.com/stretchr/testify/assert"
 )
 
