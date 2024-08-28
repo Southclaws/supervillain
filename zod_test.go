@@ -854,3 +854,53 @@ export type TopStruct = z.infer<typeof TopStructSchema>
 
 `, StructToZodSchema(TopStruct{}))
 }
+
+func TestDuplicatedInlineFields(t *testing.T) {
+	type InlineStruct struct {
+		Field        string `json:"field,omitempty"`
+		AnotherField string `json:"anotherField,omitempty"`
+	}
+
+	type BaseStruct struct {
+		Field        string `json:"field"`
+		InlineStruct `json:",inline"`
+	}
+
+	assert.Equal(t,
+		`export const BaseStructSchema = z.object({
+  field: z.string(),
+  anotherField: z.string().optional(),
+})
+export type BaseStruct = z.infer<typeof BaseStructSchema>
+
+`, StructToZodSchema(BaseStruct{}))
+}
+
+func TestDuplicatedInlineStructs(t *testing.T) {
+	type Struct struct {
+		Field string `json:"field"`
+	}
+
+	type InlineStruct struct {
+		Struct *Struct `json:"struct,omitempty"`
+	}
+
+	type BaseStruct struct {
+		InlineStruct `json:",inline"`
+
+		Struct *Struct `json:"struct,omitempty"`
+	}
+
+	assert.Equal(t,
+		`export const StructSchema = z.object({
+  field: z.string(),
+})
+export type Struct = z.infer<typeof StructSchema>
+
+export const BaseStructSchema = z.object({
+  struct: StructSchema.optional(),
+})
+export type BaseStruct = z.infer<typeof BaseStructSchema>
+
+`, StructToZodSchema(BaseStruct{}))
+}
