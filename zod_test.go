@@ -884,20 +884,39 @@ func TestSkipFields(t *testing.T) {
 		End   int    `json:"end"`
 	}
 
-	type FinalType struct {
+	// fields to be skipped must be declared before the embedded type
+
+	type FieldsSkipped struct {
 		Start    int `json:"-start"`
 		End      int `json:"-end"`
 		BaseType `    json:",inline"`
 	}
 
 	assert.Equal(t,
-		`export const FinalTypeSchema = z.object({
+		`export const FieldsSkippedSchema = z.object({
   id: z.string(),
   name: z.string(),
 })
-export type FinalType = z.infer<typeof FinalTypeSchema>
+export type FieldsSkipped = z.infer<typeof FieldsSkippedSchema>
 
-`, StructToZodSchema(FinalType{}))
+`, StructToZodSchema(FieldsSkipped{}))
+
+	type FieldsNotSkipped struct {
+		BaseType `    json:",inline"`
+		Start    int `json:"-start"`
+		End      int `json:"-end"`
+	}
+
+	assert.Equal(t,
+		`export const FieldsNotSkippedSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  start: z.number(),
+  end: z.number(),
+})
+export type FieldsNotSkipped = z.infer<typeof FieldsNotSkippedSchema>
+
+`, StructToZodSchema(FieldsNotSkipped{}))
 }
 
 func TestDuplicatedInlineStructs(t *testing.T) {
