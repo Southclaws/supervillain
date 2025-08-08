@@ -246,7 +246,14 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output.WriteString(`z.object({
 `)
 
-	c.convertStructFields(&output, input, indent+1, make(map[string]string))
+	c.convertStructFields(
+		&output,
+		input,
+		indent+1,
+		make(map[string]string),
+		make(map[string]any),
+		0,
+	)
 
 	output.WriteString(indentation(indent))
 	output.WriteString(`})`)
@@ -254,29 +261,56 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	return output.String()
 }
 
-func (c *Converter) convertStructFields(output *strings.Builder, structType reflect.Type, indent int, fields map[string]string) {
+func (c *Converter) convertStructFields(
+	output *strings.Builder,
+	structType reflect.Type,
+	indent int,
+	fields map[string]string,
+	toSkip map[string]any,
+	level int,
+) {
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-
-		shouldInlineField := structType.Name() == "" && field.Anonymous || field.Tag.Get("json") == ",inline"
+		shouldInlineField := structType.Name() == "" && field.Anonymous ||
+			field.Tag.Get("json") == ",inline"
 		if shouldInlineField {
+			// the original algorithm employs stateless depth-first
+			// recursion. because we now need to keep track of
+			// state, the entire struct must be traversed before
+			// the correct zod output can be generated
 			inlineStruct := field.Type
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
 			}
-			c.convertStructFields(output, inlineStruct, indent, fields)
+			c.convertStructFields(output, inlineStruct, indent, fields, toSkip, level+1)
 		} else {
 			name := fieldName(field)
+
 			if name == "-" || fields[name] != "" {
+				continue
+			}
+
+			if name[0] == '-' {
+				toSkip[name[1:]] = 1
 				continue
 			}
 
 			optional := isOptional(field)
 			nullable := isNullable(field)
 			line := c.convertField(field, indent, optional, nullable)
-			output.WriteString(line)
 			fields[name] = line
 		}
+	}
+
+	if level > 0 {
+		return
+	}
+
+	for k, v := range fields {
+		if _, ok := toSkip[k]; ok {
+			continue
+		}
+		output.WriteString(v)
 	}
 }
 
