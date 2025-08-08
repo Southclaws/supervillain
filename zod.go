@@ -3,8 +3,10 @@ package supervillain
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
