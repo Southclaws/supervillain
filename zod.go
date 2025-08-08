@@ -250,9 +250,9 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 		&output,
 		input,
 		indent+1,
-		make(map[string]string),
+		[]map[string]string{},
 		make(map[string]any),
-		0,
+		make(map[string]any),
 	)
 
 	output.WriteString(indentation(indent))
@@ -261,32 +261,41 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	return output.String()
 }
 
+func fieldExists(fields []map[string]string, name string) bool {
+	for _, m := range fields {
+		if m[name] != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Converter) convertStructFields(
 	output *strings.Builder,
 	structType reflect.Type,
 	indent int,
-	fields map[string]string,
+	fields []map[string]string,
 	toSkip map[string]any,
-	level int,
+	seen map[string]any,
 ) {
+	// the original algorithm employs stateless depth-first recursion.
+	// because we now need to keep track of state, the entire struct must
+	// be traversed before the correct zod output can be generated. fields
+	// must be accumulated as a slice (because maps are unordered)
+
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		shouldInlineField := structType.Name() == "" && field.Anonymous ||
 			field.Tag.Get("json") == ",inline"
 		if shouldInlineField {
-			// the original algorithm employs stateless depth-first
-			// recursion. because we now need to keep track of
-			// state, the entire struct must be traversed before
-			// the correct zod output can be generated
 			inlineStruct := field.Type
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
 			}
-			c.convertStructFields(output, inlineStruct, indent, fields, toSkip, level+1)
+			c.convertStructFields(output, inlineStruct, indent, fields, toSkip, seen)
 		} else {
 			name := fieldName(field)
-
-			if name == "-" || fields[name] != "" {
+			if name == "-" || fieldExists(fields, name) {
 				continue
 			}
 
@@ -295,21 +304,30 @@ func (c *Converter) convertStructFields(
 				continue
 			}
 
+			if _, ok := seen[name]; ok {
+				continue
+			}
+
 			optional := isOptional(field)
 			nullable := isNullable(field)
 			line := c.convertField(field, indent, optional, nullable)
-			fields[name] = line
+			fields = append(fields, map[string]string{name: line})
 		}
 	}
 
-	if level > 0 {
-		return
-	}
+	for _, field := range fields {
+		k := slices.Collect(maps.Keys(field))[0]
+		v := field[k]
 
-	for k, v := range fields {
 		if _, ok := toSkip[k]; ok {
 			continue
 		}
+
+		if _, ok := seen[k]; ok {
+			continue
+		}
+
+		seen[k] = 1
 		output.WriteString(v)
 	}
 }

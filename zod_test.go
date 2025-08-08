@@ -876,6 +876,30 @@ export type BaseStruct = z.infer<typeof BaseStructSchema>
 `, StructToZodSchema(BaseStruct{}))
 }
 
+func TestSkipFields(t *testing.T) {
+	type BaseType struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Start int    `json:"start"`
+		End   int    `json:"end"`
+	}
+
+	type FinalType struct {
+		Start    int `json:"-start"`
+		End      int `json:"-end"`
+		BaseType `    json:",inline"`
+	}
+
+	assert.Equal(t,
+		`export const FinalTypeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+export type FinalType = z.infer<typeof FinalTypeSchema>
+
+`, StructToZodSchema(FinalType{}))
+}
+
 func TestDuplicatedInlineStructs(t *testing.T) {
 	type Struct struct {
 		Field string `json:"field"`
