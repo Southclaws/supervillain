@@ -51,10 +51,8 @@ export type User = z.infer<typeof UserSchema>;
 
 ### Skipping fields
 
-If a field is present in an
-[embedded struct](https://gobyexample.com/struct-embedding) tagged with
-`inline`, and subsequently "redeclared" with the same JSON tag prefixed with
-`-`, the embedded field will be omitted.
+If a field is declared with a JSON tag prefixed with `-`, and subsequently also
+present inside an `inline`d struct, the embedded field will be omitted.
 
 ```go
 package main
@@ -71,9 +69,9 @@ type BaseType struct {
 }
 
 type FinalType struct {
-	BaseType `json:",inline"`
 	Start    int `json:"-start"`
 	End      int `json:"-end"`
+	BaseType `json:",inline"`
 }
 
 func main() {
