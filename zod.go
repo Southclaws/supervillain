@@ -248,14 +248,7 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output.WriteString(`z.object({
 `)
 
-	c.convertStructFields(
-		&output,
-		input,
-		indent+1,
-		[]map[string]string{},
-		make(map[string]any),
-		make(map[string]any),
-	)
+	c.convertStructFields(&output, input, indent+1, []map[string]string{}, make(map[string]any))
 
 	output.WriteString(indentation(indent))
 	output.WriteString(`})`)
@@ -278,7 +271,6 @@ func (c *Converter) convertStructFields(
 	indent int,
 	fields []map[string]string,
 	toSkip map[string]any,
-	seen map[string]any,
 ) {
 	// the original algorithm employs stateless depth-first recursion.
 	// because we now need to keep track of state, the entire struct must
@@ -294,7 +286,7 @@ func (c *Converter) convertStructFields(
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
 			}
-			c.convertStructFields(output, inlineStruct, indent, fields, toSkip, seen)
+			c.convertStructFields(output, inlineStruct, indent, fields, toSkip)
 		} else {
 			name := fieldName(field)
 			if name == "-" || fieldExists(fields, name) {
@@ -303,10 +295,6 @@ func (c *Converter) convertStructFields(
 
 			if name[0] == '-' {
 				toSkip[name[1:]] = 1
-				continue
-			}
-
-			if _, ok := seen[name]; ok {
 				continue
 			}
 
@@ -324,12 +312,8 @@ func (c *Converter) convertStructFields(
 		if _, ok := toSkip[k]; ok {
 			continue
 		}
+		toSkip[k] = 1
 
-		if _, ok := seen[k]; ok {
-			continue
-		}
-
-		seen[k] = 1
 		output.WriteString(v)
 	}
 }
