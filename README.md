@@ -49,6 +49,42 @@ export type User = z.infer<typeof UserSchema>;
 
 ## Custom Types
 
+### Skipping fields
+
+If a field is declared with a JSON tag prefixed with `-`, and subsequently also
+present inside an `inline`d struct, the embedded field will be omitted.
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type BaseType struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+}
+
+type FinalType struct {
+	Start    int `json:"-start"`
+	End      int `json:"-end"`
+	BaseType `json:",inline"`
+}
+
+func main() {
+	fmt.Println(StructToZodSchema(FinalType{}))
+
+	// export const FinalTypeSchema = z.object({
+	//   id: z.string(),
+	//   name: z.string(),
+	// })
+	// export type FinalType = z.infer<typeof FinalTypeSchema>
+}
+```
+
 ### ZodSchema() method
 
 You can define a custom conversion using a `ZodSchema()` method. This should have one of the following types:

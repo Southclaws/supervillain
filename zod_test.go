@@ -876,6 +876,49 @@ export type BaseStruct = z.infer<typeof BaseStructSchema>
 `, StructToZodSchema(BaseStruct{}))
 }
 
+func TestSkipFields(t *testing.T) {
+	type BaseType struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Start int    `json:"start"`
+		End   int    `json:"end"`
+	}
+
+	// fields to be skipped must be declared before the embedded type
+
+	type FieldsSkipped struct {
+		Start    int `json:"-start"`
+		End      int `json:"-end"`
+		BaseType `    json:",inline"`
+	}
+
+	assert.Equal(t,
+		`export const FieldsSkippedSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+export type FieldsSkipped = z.infer<typeof FieldsSkippedSchema>
+
+`, StructToZodSchema(FieldsSkipped{}))
+
+	type FieldsNotSkipped struct {
+		BaseType `    json:",inline"`
+		Start    int `json:"-start"`
+		End      int `json:"-end"`
+	}
+
+	assert.Equal(t,
+		`export const FieldsNotSkippedSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  start: z.number(),
+  end: z.number(),
+})
+export type FieldsNotSkipped = z.infer<typeof FieldsNotSkippedSchema>
+
+`, StructToZodSchema(FieldsNotSkipped{}))
+}
+
 func TestDuplicatedInlineStructs(t *testing.T) {
 	type Struct struct {
 		Field string `json:"field"`

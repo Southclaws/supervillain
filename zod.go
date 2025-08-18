@@ -3,8 +3,10 @@ package supervillain
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -246,7 +248,7 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	output.WriteString(`z.object({
 `)
 
-	c.convertStructFields(&output, input, indent+1, make(map[string]string))
+	c.convertStructFields(&output, input, indent+1, []map[string]string{}, make(map[string]any))
 
 	output.WriteString(indentation(indent))
 	output.WriteString(`})`)
@@ -254,29 +256,65 @@ func (c *Converter) convertStruct(input reflect.Type, indent int) string {
 	return output.String()
 }
 
-func (c *Converter) convertStructFields(output *strings.Builder, structType reflect.Type, indent int, fields map[string]string) {
+func fieldExists(fields []map[string]string, name string) bool {
+	for _, m := range fields {
+		if m[name] != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Converter) convertStructFields(
+	output *strings.Builder,
+	structType reflect.Type,
+	indent int,
+	fields []map[string]string,
+	toSkip map[string]any,
+) {
+	// the original algorithm employs stateless depth-first recursion.
+	// because we now need to keep track of state, the entire struct must
+	// be traversed before the correct zod output can be generated. fields
+	// must be accumulated as a slice (because maps are unordered)
+
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-
-		shouldInlineField := structType.Name() == "" && field.Anonymous || field.Tag.Get("json") == ",inline"
+		shouldInlineField := structType.Name() == "" && field.Anonymous ||
+			field.Tag.Get("json") == ",inline"
 		if shouldInlineField {
 			inlineStruct := field.Type
 			if inlineStruct.Kind() == reflect.Ptr {
 				inlineStruct = inlineStruct.Elem()
 			}
-			c.convertStructFields(output, inlineStruct, indent, fields)
+			c.convertStructFields(output, inlineStruct, indent, fields, toSkip)
 		} else {
 			name := fieldName(field)
-			if name == "-" || fields[name] != "" {
+			if name == "-" || fieldExists(fields, name) {
+				continue
+			}
+
+			if name[0] == '-' {
+				toSkip[name[1:]] = 1
 				continue
 			}
 
 			optional := isOptional(field)
 			nullable := isNullable(field)
 			line := c.convertField(field, indent, optional, nullable)
-			output.WriteString(line)
-			fields[name] = line
+			fields = append(fields, map[string]string{name: line})
 		}
+	}
+
+	for _, field := range fields {
+		k := slices.Collect(maps.Keys(field))[0]
+		v := field[k]
+
+		if _, ok := toSkip[k]; ok {
+			continue
+		}
+		toSkip[k] = 1
+
+		output.WriteString(v)
 	}
 }
 
