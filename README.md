@@ -2,6 +2,8 @@
 
 Converts Go structs to Zod schemas.
 
+**✅ Compatible with Zod 3.x and Zod 4.x**
+
 Usage:
 
 ```go
@@ -151,6 +153,18 @@ export type User = z.infer<typeof UserSchema>
 ```
 
 There are some custom types with tests in the "custom" directory.
+
+## Zod Version Compatibility
+
+This library generates TypeScript code that is compatible with both Zod 3.x and Zod 4.x. The generated schemas use standard Zod APIs that remain consistent across versions:
+
+- `z.object({})` - Object schemas
+- `z.string()`, `z.number()`, `z.boolean()` - Primitive types  
+- `z.array()`, `z.record()` - Collection types
+- `.optional()`, `.nullable()` - Type modifiers
+- `z.infer<typeof Schema>` - Type inference
+
+The tool focuses on generating schemas for the subset of Go types that map cleanly to TypeScript, ensuring broad compatibility with the Zod ecosystem.
 
 The function signature for custom type handlers is:
 
