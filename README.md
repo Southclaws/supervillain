@@ -1,3 +1,15 @@
+> [!NOTE]  
+> This package is mostly unmaintained, if you're a fan of Go, codegen and Zod then check out Schemancer:
+>
+> https://github.com/Southclaws/schemancer
+> 
+> Schemancer takes a different approach where your shared data structures' source of truth is not code, but JSON Schemas, from which you can generate Go structs and TypeScript Zod schemas.
+>
+> Plus, Schemancer also supports discriminated unions which this package does not, as well as other features not as easy to express via Go structs alone.
+
+
+
+
 # Supervillain
 
 Converts Go structs to Zod schemas.
